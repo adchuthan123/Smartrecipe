@@ -1,5 +1,5 @@
 <script>
-    import RecipeCard from "$lib/components/RecipeCard.svelte";
+    import RecipeCard from "$lib/components/Recipecard.svelte";
     import { favorites } from "$lib/stores/favorites.js";
 
     let { data } = $props();

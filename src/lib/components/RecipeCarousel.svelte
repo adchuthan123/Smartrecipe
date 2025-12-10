@@ -89,6 +89,7 @@
             src={currentRecipe.image || '/images/placeholder.jpg'}
             alt={currentRecipe.title}
             class="recipe-image"
+            onerror={(e) => (e.target.src = '/images/placeholder.jpg')}
           />
           <!-- Category Badges -->
           {#if currentRecipe.category && currentRecipe.category.length > 0}
@@ -178,7 +179,7 @@
           class:active={index === currentIndex}
           onclick={() => goToSlide(index)}
           aria-label={`Rezept ${index + 1}`}
-        />
+        ></button>
       {/each}
     </div>
   {/if}
@@ -293,24 +294,32 @@
     padding: 2.5rem;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 1rem;
     background: white;
+    overflow-y: auto;
   }
 
   .recipe-title {
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 800;
     color: #1f2937;
-    margin: 0 0 1.5rem 0;
-    line-height: 1.2;
+    margin: 0;
+    line-height: 1.3;
     letter-spacing: -0.5px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .recipe-meta {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 0.8rem;
+    margin-bottom: 0;
   }
 
   .meta-item {
@@ -352,11 +361,11 @@
   .nutrition-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    padding: 1.5rem;
+    gap: 0.8rem;
+    padding: 1rem;
     background: #f9fafb;
     border-radius: 12px;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
   }
 
   .nutrition-item {
@@ -381,7 +390,7 @@
   }
 
   .rating-section {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
   }
 
   .stars {
@@ -408,7 +417,7 @@
   }
 
   .cta-section {
-    margin-top: auto;
+    margin-top: 0.5rem;
   }
 
   .cta-btn {

@@ -85,6 +85,9 @@
       <!-- Rating -->
       <div class="rating-container">
         <span class="rating">⭐ {recipe.rating.average}</span>
+        {#if recipe.rating.count > 0}
+          <span class="rating-count">({recipe.rating.count})</span>
+        {/if}
       </div>
     </div>
   </div>
@@ -249,6 +252,12 @@
     font-weight: 700;
     color: #ffc107;
     font-size: 1rem;
+  }
+
+  .rating-count {
+    font-size: 0.85rem;
+    color: #999;
+    font-weight: 500;
   }
 
   @media (max-width: 768px) {

@@ -111,10 +111,113 @@ async function deleteRecipe(id) {
   }
 }
 
+//////////////////////////////////////////
+// Ratings
+//////////////////////////////////////////
+
+async function getRatingsForRecipe(recipeId) {
+  try {
+    const collection = db.collection("ratings");
+    let ratings = await collection
+      .find({ recipeId: recipeId })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    ratings = ratings.map((rating) => {
+      rating._id = rating._id.toString();
+      return rating;
+    });
+
+    return ratings;
+  } catch (error) {
+    console.log("Error getting ratings:", error.message);
+    return [];
+  }
+}
+
+async function createRating(rating) {
+  try {
+    // Validierung
+    if (!rating.recipeId || !rating.stars || rating.stars < 1 || rating.stars > 5) {
+      throw new Error("Invalid rating data");
+    }
+
+    const ratingData = {
+      recipeId: rating.recipeId,
+      userId: rating.userId || null,
+      stars: parseInt(rating.stars),
+      comment: rating.comment || "",
+      createdAt: new Date(),
+    };
+
+    const collection = db.collection("ratings");
+    const result = await collection.insertOne(ratingData);
+
+    // Update recipe's average rating
+    await updateRecipeAverageRating(rating.recipeId);
+
+    return result.insertedId.toString();
+  } catch (error) {
+    console.log("Error creating rating:", error.message);
+    return null;
+  }
+}
+
+async function getAverageRatingForRecipe(recipeId) {
+  try {
+    const collection = db.collection("ratings");
+    const result = await collection
+      .aggregate([
+        { $match: { recipeId: recipeId } },
+        {
+          $group: {
+            _id: "$recipeId",
+            average: { $avg: "$stars" },
+            count: { $sum: 1 },
+          },
+        },
+      ])
+      .toArray();
+
+    if (result.length === 0) {
+      return { average: 0, count: 0 };
+    }
+
+    return {
+      average: Math.round(result[0].average * 10) / 10, // round to 1 decimal
+      count: result[0].count,
+    };
+  } catch (error) {
+    console.log("Error getting average rating:", error.message);
+    return { average: 0, count: 0 };
+  }
+}
+
+async function updateRecipeAverageRating(recipeId) {
+  try {
+    const avgRating = await getAverageRatingForRecipe(recipeId);
+    
+    const collection = db.collection("recipes");
+    await collection.updateOne(
+      { _id: new ObjectId(recipeId) },
+      { $set: { rating: avgRating } }
+    );
+
+    return avgRating;
+  } catch (error) {
+    console.log("Error updating recipe average rating:", error.message);
+    return null;
+  }
+}
+
 export default {
   getRecipes,
   getRecipe,
   createRecipe,
   updateRecipe,
   deleteRecipe,
+  getRatingsForRecipe,
+  createRating,
+  getAverageRatingForRecipe,
+  updateRecipeAverageRating,
 };

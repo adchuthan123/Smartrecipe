@@ -1,12 +1,23 @@
 <script>
   import RecipeCard from "$lib/components/RecipeCard.svelte";
   import { favorites } from "$lib/stores/favorites.js";
+  import { filterRecipes } from "$lib/recipeFilters";
   
   let { data } = $props();
   
-  // Filter-State
+  // Filter-State (Kategorien)
   let activeFilters = $state([]);
   let searchQuery = $state("");
+  
+  // Erweiterte Filter-State
+  let kalorienarm = $state(false);
+  let kohlenhydratreich = $state(false);
+  let fettarm = $state(false);
+  let schnell = $state(false);
+  let einfach = $state(false);
+  let minRating = $state(0);
+  let allergyInput = $state("");
+  let sortBy = $state(undefined);
   
   // Verfügbare Filter (basierend auf den category-Werten)
   const filters = [
@@ -15,12 +26,23 @@
     { id: 'protein', label: '💪 Proteinreich', category: 'Proteinreich' },
     { id: 'glutenfree', label: '🌾 Glutenfrei', category: 'Glutenfrei' }
   ];
+
+  // Erweiterte Filter
+  const advancedFilters = [
+    { id: 'kalorienarm', label: '🍃 Kalorienarm', key: 'kalorienarm' },
+    { id: 'kohlenhydratreich', label: '🍞 Kohlenhydratreich', key: 'kohlenhydratreich' },
+    { id: 'fettarm', label: '💧 Fettarm', key: 'fettarm' },
+    { id: 'schnell', label: '⚡ Schnell', key: 'schnell' },
+    { id: 'einfach', label: '👍 Einfach', key: 'einfach' }
+  ];
+
+  let showAdvancedFilters = $state(false);
   
-  // Gefilterte Rezepte
+  // Gefilterte Rezepte mit erweiterten Filtern
   let filteredRecipes = $derived.by(() => {
     let results = data.recipes;
     
-    // Kategorie-Filter
+    // 1. Kategorie-Filter (bestehend)
     if (activeFilters.length > 0) {
       results = results.filter(recipe => {
         const recipeCategories = recipe.category || [];
@@ -30,13 +52,27 @@
       });
     }
     
-    // Suchfeld-Filter
+    // 2. Suchfeld-Filter (bestehend)
     if (searchQuery.trim() !== "") {
       const query = searchQuery.toLowerCase();
       results = results.filter(recipe => 
         recipe.title.toLowerCase().includes(query)
       );
     }
+
+    // 3. Erweiterte Filter über filterRecipes()
+    const allergies = allergyInput.trim() ? allergyInput.split(',').map(a => a.trim()) : [];
+    
+    results = filterRecipes(results, {
+      kalorienarm,
+      kohlenhydratreich,
+      fettarm,
+      schnell,
+      einfach,
+      allergies: allergies.length > 0 ? allergies : undefined,
+      minRating: minRating > 0 ? minRating : undefined,
+      sortBy
+    });
     
     return results;
   });
@@ -49,9 +85,40 @@
     }
   }
   
-  function clearFilters() {
+  function clearAllFilters() {
     activeFilters = [];
+    kalorienarm = false;
+    kohlenhydratreich = false;
+    fettarm = false;
+    schnell = false;
+    einfach = false;
+    minRating = 0;
+    allergyInput = "";
+    sortBy = undefined;
+    searchQuery = "";
   }
+
+  function toggleAdvancedFilter(key) {
+    if (key === 'kalorienarm') kalorienarm = !kalorienarm;
+    else if (key === 'kohlenhydratreich') kohlenhydratreich = !kohlenhydratreich;
+    else if (key === 'fettarm') fettarm = !fettarm;
+    else if (key === 'schnell') schnell = !schnell;
+    else if (key === 'einfach') einfach = !einfach;
+  }
+
+  function isAdvancedFilterActive(key) {
+    if (key === 'kalorienarm') return kalorienarm;
+    if (key === 'kohlenhydratreich') return kohlenhydratreich;
+    if (key === 'fettarm') return fettarm;
+    if (key === 'schnell') return schnell;
+    if (key === 'einfach') return einfach;
+    return false;
+  }
+
+  let hasActiveAdvancedFilters = $derived(
+    kalorienarm || kohlenhydratreich || fettarm || schnell || einfach || 
+    minRating > 0 || allergyInput.trim() !== "" || sortBy !== undefined
+  );
 </script>
 
 <h2 class="section-title">Rezepte für dich</h2>
@@ -86,13 +153,110 @@
       </button>
     {/each}
     
-    {#if activeFilters.length > 0}
-      <button class="filter-btn clear-btn" on:click={clearFilters}>
-        ✕ Filter löschen
+    <button 
+      class="filter-btn advanced-toggle-btn" 
+      class:active={showAdvancedFilters}
+      on:click={() => showAdvancedFilters = !showAdvancedFilters}
+    >
+      ⚙️ Erweitert {hasActiveAdvancedFilters ? '●' : ''}
+    </button>
+    
+    {#if activeFilters.length > 0 || hasActiveAdvancedFilters}
+      <button class="filter-btn clear-btn" on:click={clearAllFilters}>
+        ✕ Alle Filter löschen
       </button>
     {/if}
   </div>
 </div>
+
+<!-- Erweiterte Filter Panel -->
+{#if showAdvancedFilters}
+  <div class="advanced-filters-panel">
+    <div class="advanced-filters-content">
+      
+      <!-- Nährwert & Zeit Filter -->
+      <div class="filter-section">
+        <h3 class="filter-section-title">Eigenschaften</h3>
+        <div class="filter-chips">
+          {#each advancedFilters as filter}
+            <button
+              class="chip-btn"
+              class:active={isAdvancedFilterActive(filter.key)}
+              on:click={() => toggleAdvancedFilter(filter.key)}
+            >
+              {filter.label}
+            </button>
+          {/each}
+        </div>
+      </div>
+
+      <!-- Bewertung -->
+      <div class="filter-section">
+        <h3 class="filter-section-title">Mindestbewertung</h3>
+        <div class="rating-selector">
+          <input 
+            type="range" 
+            min="0" 
+            max="5" 
+            step="0.5"
+            bind:value={minRating}
+            class="rating-slider"
+          />
+          <span class="rating-value">
+            {#if minRating > 0}
+              ⭐ {minRating}+
+            {:else}
+              Alle
+            {/if}
+          </span>
+        </div>
+      </div>
+
+      <!-- Allergien -->
+      <div class="filter-section">
+        <h3 class="filter-section-title">Allergien / Unverträglichkeiten</h3>
+        <input
+          type="text"
+          placeholder="z.B. nuss, laktose, gluten (mit Komma trennen)"
+          bind:value={allergyInput}
+          class="allergy-input"
+        />
+        {#if allergyInput.trim()}
+          <p class="allergy-hint">Rezepte mit diesen Zutaten werden ausgeblendet</p>
+        {/if}
+      </div>
+
+      <!-- Sortierung -->
+      <div class="filter-section">
+        <h3 class="filter-section-title">Sortierung</h3>
+        <div class="sort-options">
+          <button
+            class="sort-btn"
+            class:active={sortBy === undefined}
+            on:click={() => sortBy = undefined}
+          >
+            Standard
+          </button>
+          <button
+            class="sort-btn"
+            class:active={sortBy === 'bestRating'}
+            on:click={() => sortBy = 'bestRating'}
+          >
+            ⭐ Beste Bewertung
+          </button>
+          <button
+            class="sort-btn"
+            class:active={sortBy === 'mostComments'}
+            on:click={() => sortBy = 'mostComments'}
+          >
+            💬 Meist kommentiert
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+{/if}
 
 <!-- Rezepte-Grid -->
 <div class="recipe-grid">
@@ -226,6 +390,172 @@
     border-color: #999;
   }
 
+  .advanced-toggle-btn.active {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border-color: #007bff;
+  }
+
+  /* Advanced Filters Panel */
+  .advanced-filters-panel {
+    background: #f8f9fa;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    animation: slideDown 0.3s ease;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .advanced-filters-content {
+    display: grid;
+    gap: 2rem;
+  }
+
+  .filter-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+  }
+
+  .filter-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 1rem 0;
+  }
+
+  .filter-chips {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .chip-btn {
+    padding: 0.6rem 1.2rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 20px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .chip-btn:hover {
+    border-color: #007bff;
+    background: #f0f7ff;
+  }
+
+  .chip-btn.active {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border-color: #007bff;
+  }
+
+  .rating-selector {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .rating-slider {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #e0e0e0;
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  .rating-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ffc107;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .rating-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ffc107;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .rating-value {
+    min-width: 80px;
+    text-align: center;
+    font-weight: 600;
+    color: #ffc107;
+    font-size: 1.1rem;
+  }
+
+  .allergy-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s ease;
+  }
+
+  .allergy-input:focus {
+    outline: none;
+    border-color: #007bff;
+  }
+
+  .allergy-hint {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.85rem;
+    color: #dc3545;
+    font-style: italic;
+  }
+
+  .sort-options {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .sort-btn {
+    padding: 0.7rem 1.2rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .sort-btn:hover {
+    border-color: #007bff;
+    background: #f0f7ff;
+  }
+
+  .sort-btn.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+  }
+
   .recipe-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -238,5 +568,23 @@
     color: #999;
     padding: 3rem;
     font-size: 1.1rem;
+  }
+
+  @media (max-width: 768px) {
+    .advanced-filters-panel {
+      padding: 1rem;
+    }
+
+    .filter-section {
+      padding: 1rem;
+    }
+
+    .sort-options {
+      flex-direction: column;
+    }
+
+    .sort-btn {
+      width: 100%;
+    }
   }
 </style>

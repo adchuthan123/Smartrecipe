@@ -35,6 +35,33 @@ async function getRecipes() {
   }
 }
 
+async function getRecipesPaginated(skip = 0, limit = 20) {
+  try {
+    const collection = db.collection("recipes");
+    let recipes = await collection.find({}).skip(skip).limit(limit).toArray();
+
+    recipes = recipes.map((recipe) => {
+      recipe._id = recipe._id.toString();
+      return applyImageFallback(recipe);
+    });
+
+    return recipes;
+  } catch (error) {
+    console.log(error);
+    return [];
+  }
+}
+
+async function getTotalRecipeCount() {
+  try {
+    const collection = db.collection("recipes");
+    return await collection.countDocuments({});
+  } catch (error) {
+    console.log(error);
+    return 0;
+  }
+}
+
 async function getRecipe(id) {
   try {
     const collection = db.collection("recipes");
@@ -212,6 +239,8 @@ async function updateRecipeAverageRating(recipeId) {
 
 export default {
   getRecipes,
+  getRecipesPaginated,
+  getTotalRecipeCount,
   getRecipe,
   createRecipe,
   updateRecipe,

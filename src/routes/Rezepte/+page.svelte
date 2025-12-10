@@ -1,9 +1,13 @@
 <script>
   import RecipeCard from "$lib/components/RecipeCard.svelte";
+  import RecipesHomePage from "$lib/components/RecipesHomePage.svelte";
   import { favorites } from "$lib/stores/favorites.js";
   import { filterRecipes } from "$lib/recipeFilters";
   
   let { data } = $props();
+  
+  // View Mode: 'home' oder 'filter'
+  let viewMode = $state('home');
   
   // Filter-State (Kategorien)
   let activeFilters = $state([]);
@@ -18,6 +22,10 @@
   let minRating = $state(0);
   let allergyInput = $state("");
   let sortBy = $state(undefined);
+  
+  // Infinite Load - "Weitere laden" Button
+  let itemsToShow = $state(20);
+  const itemsPerLoad = 20;
   
   // Verfügbare Filter (basierend auf den category-Werten)
   const filters = [
@@ -83,6 +91,7 @@
     } else {
       activeFilters = [...activeFilters, category];
     }
+    currentPage = 1; // Reset zu erster Seite
   }
   
   function clearAllFilters() {
@@ -96,7 +105,23 @@
     allergyInput = "";
     sortBy = undefined;
     searchQuery = "";
+    itemsToShow = 20; // Reset auf erste 20 Items
   }
+  
+  function loadMore() {
+    itemsToShow += itemsPerLoad;
+    // Optional: Smooth scroll zum Button
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
+  }
+  
+  // Infinite Load - Nur bis itemsToShow rendern
+  let displayedRecipes = $derived.by(() => {
+    return filteredRecipes.slice(0, itemsToShow);
+  });
+  
+  let hasMoreRecipes = $derived(itemsToShow < filteredRecipes.length);
 
   function toggleAdvancedFilter(key) {
     if (key === 'kalorienarm') kalorienarm = !kalorienarm;
@@ -121,55 +146,77 @@
   );
 </script>
 
-<h2 class="section-title">Rezepte für dich</h2>
-<p class="section-subtitle">Speziell ausgewählt für dein Ziel</p>
-
-<!-- Create Button + Search + Filter Bar Container -->
-<div class="controls-container">
-  <a href="/Rezepte/create" class="create-btn">
-    ➕ Neues Rezept
-  </a>
-
-  <!-- Suchfeld -->
-  <div class="search-container">
-    <input
-      type="text"
-      placeholder="Rezepte durchsuchen..."
-      bind:value={searchQuery}
-      class="search-input"
-    />
-    <span class="search-icon">🔍</span>
+{#if viewMode === 'home'}
+  <!-- HOME VIEW -->
+  <RecipesHomePage recipes={data.recipes} />
+  
+  <!-- View Mode Toggle (bottom right) -->
+  <div class="view-toggle">
+    <button 
+      class="toggle-btn active" 
+      onclick={() => viewMode = 'home'}
+      title="Netflix-Style Übersicht"
+    >
+      🏠 Home
+    </button>
+    <button 
+      class="toggle-btn" 
+      onclick={() => viewMode = 'filter'}
+      title="Filter & Such-Ansicht"
+    >
+      🔍 Filter
+    </button>
   </div>
 
-  <!-- Filter-Bar -->
-  <div class="filter-bar">
-    {#each filters as filter}
-      <button
-        class="filter-btn"
-        class:active={activeFilters.includes(filter.category)}
-        on:click={() => toggleFilter(filter.category)}
+{:else}
+  <!-- FILTER VIEW -->
+  <h2 class="section-title">Rezepte für dich</h2>
+  <p class="section-subtitle">Speziell ausgewählt für dein Ziel</p>
+
+  <!-- Create Button + Search + Filter Bar Container -->
+  <div class="controls-container">
+    <a href="/Rezepte/create" class="create-btn">
+      ➕ Neues Rezept
+    </a>
+
+    <!-- Suchfeld -->
+    <div class="search-container">
+      <input
+        type="text"
+        placeholder="Rezepte durchsuchen..."
+        bind:value={searchQuery}
+        class="search-input"
+      />
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <!-- Filter-Bar -->
+    <div class="filter-bar">
+      {#each filters as filter}
+        <button
+          class="filter-btn"
+          class:active={activeFilters.includes(filter.category)}
+          onclick={() => toggleFilter(filter.category)}
+        >
+          {filter.label}
+        </button>
+      {/each}
+      
+      <button 
+        class="filter-btn advanced-toggle-btn" 
+        class:active={showAdvancedFilters}
+        onclick={() => showAdvancedFilters = !showAdvancedFilters}
       >
-        {filter.label}
+        ⚙️ Erweitert {hasActiveAdvancedFilters ? '●' : ''}
       </button>
-    {/each}
-    
-    <button 
-      class="filter-btn advanced-toggle-btn" 
-      class:active={showAdvancedFilters}
-      on:click={() => showAdvancedFilters = !showAdvancedFilters}
-    >
-      ⚙️ Erweitert {hasActiveAdvancedFilters ? '●' : ''}
-    </button>
-    
+      
     {#if activeFilters.length > 0 || hasActiveAdvancedFilters}
-      <button class="filter-btn clear-btn" on:click={clearAllFilters}>
-        ✕ Alle Filter löschen
+      <button class="filter-btn clear-btn" onclick={clearAllFilters}>
+        ✕ Alle Filter löschen ({filteredRecipes.length} gefunden)
       </button>
     {/if}
   </div>
-</div>
-
-<!-- Erweiterte Filter Panel -->
+</div><!-- Erweiterte Filter Panel -->
 {#if showAdvancedFilters}
   <div class="advanced-filters-panel">
     <div class="advanced-filters-content">
@@ -182,7 +229,7 @@
             <button
               class="chip-btn"
               class:active={isAdvancedFilterActive(filter.key)}
-              on:click={() => toggleAdvancedFilter(filter.key)}
+              onclick={() => toggleAdvancedFilter(filter.key)}
             >
               {filter.label}
             </button>
@@ -233,21 +280,21 @@
           <button
             class="sort-btn"
             class:active={sortBy === undefined}
-            on:click={() => sortBy = undefined}
+            onclick={() => sortBy = undefined}
           >
             Standard
           </button>
           <button
             class="sort-btn"
             class:active={sortBy === 'bestRating'}
-            on:click={() => sortBy = 'bestRating'}
+            onclick={() => sortBy = 'bestRating'}
           >
             ⭐ Beste Bewertung
           </button>
           <button
             class="sort-btn"
             class:active={sortBy === 'mostComments'}
-            on:click={() => sortBy = 'mostComments'}
+            onclick={() => sortBy = 'mostComments'}
           >
             💬 Meist kommentiert
           </button>
@@ -260,14 +307,54 @@
 
 <!-- Rezepte-Grid -->
 <div class="recipe-grid">
-  {#if filteredRecipes.length > 0}
-    {#each filteredRecipes as recipe}
+  {#if displayedRecipes.length > 0}
+    {#each displayedRecipes as recipe}
       <RecipeCard {recipe} />
     {/each}
   {:else}
     <p class="no-results">Keine Rezepte mit diesen Filtern gefunden 😔</p>
   {/if}
 </div>
+
+<!-- Load More Button -->
+{#if hasMoreRecipes}
+  <div class="load-more-container">
+    <p class="load-more-info">
+      Zeige {displayedRecipes.length} von {filteredRecipes.length} Rezepten
+    </p>
+    <button 
+      class="load-more-btn"
+      onclick={loadMore}
+    >
+      Weiter
+    </button>
+  </div>
+{:else if filteredRecipes.length > 0}
+  <div class="load-more-container">
+    <p class="load-more-info">
+      ✅ Alle {filteredRecipes.length} Rezepte angezeigt
+    </p>
+  </div>
+{/if}
+
+  <!-- View Mode Toggle (bottom right) -->
+  <div class="view-toggle">
+    <button 
+      class="toggle-btn" 
+      onclick={() => viewMode = 'home'}
+      title="Netflix-Style Übersicht"
+    >
+      🏠 Home
+    </button>
+    <button 
+      class="toggle-btn active" 
+      onclick={() => viewMode = 'filter'}
+      title="Filter & Such-Ansicht"
+    >
+      🔍 Filter
+    </button>
+  </div>
+{/if}
 
 <style>
   .section-title {
@@ -568,6 +655,80 @@
     color: #999;
     padding: 3rem;
     font-size: 1.1rem;
+  }
+
+  .load-more-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 4rem;
+    margin-bottom: 3rem;
+  }
+
+  .load-more-info {
+    font-size: 0.95rem;
+    color: #666;
+    margin: 0;
+    font-weight: 500;
+  }
+
+  .load-more-btn {
+    padding: 0.9rem 2rem;
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+  }
+
+  .load-more-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 123, 255, 0.4);
+  }
+
+  .load-more-btn:active {
+    transform: translateY(0);
+  }
+
+  .view-toggle {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    display: flex;
+    gap: 0.5rem;
+    background: white;
+    border-radius: 50px;
+    padding: 0.4rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+  }
+
+  .toggle-btn {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 50px;
+    background: #f0f0f0;
+    color: #666;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .toggle-btn:hover {
+    background: #e0e0e0;
+  }
+
+  .toggle-btn.active {
+    background: linear-gradient(135deg, #0066ff 0%, #0046b3 100%);
+    color: white;
   }
 
   @media (max-width: 768px) {

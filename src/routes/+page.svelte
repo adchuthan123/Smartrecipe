@@ -1,5 +1,6 @@
 <script>
   import "./styles.css";
+  import { goto } from '$app/navigation';
 
   let { data } = $props();
   let recipes = $derived(data.recipes || []);
@@ -81,6 +82,126 @@
       addIngredient();
     }
   }
+
+  // Zufalls-Rezept State
+  let isSpinning = $state(false);
+  let randomRecipe = $state(null);
+  let showRandomRecipe = $state(false);
+  let spinInterval = null;
+
+  // Zufalls-Rezept Funktion mit garantiertem Stop
+  function pickRandomRecipe() {
+    // Guard: Nur wenn nicht bereits spinning und Rezepte vorhanden
+    if (!recipes || recipes.length === 0 || isSpinning) {
+      console.warn('⚠️ Cannot pick recipe:', {
+        recipesAvailable: recipes?.length ?? 0,
+        isSpinning,
+        recipesExist: !!recipes
+      });
+      return;
+    }
+
+    console.log('🎲 Starting random recipe selection, recipes available:', recipes.length);
+    console.log('📦 First recipe structure:', recipes[0]);
+    
+    // Reset State
+    isSpinning = true;
+    showRandomRecipe = false;
+    randomRecipe = null;
+
+    // Stoppe ggf. vorherigen Interval
+    if (spinInterval) clearInterval(spinInterval);
+
+    const animationDuration = 1500; // 1.5 Sekunden
+    const spinSpeed = 100; // Update alle 100ms
+    const startTime = Date.now();
+    let isAnimationComplete = false;
+
+    // Animation: Schneller Wechsel zwischen Rezepten
+    spinInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+
+      // Wähle zufälliges Rezept während Animation läuft
+      if (!isAnimationComplete && elapsed < animationDuration) {
+        const randomIndex = Math.floor(Math.random() * recipes.length);
+        const selectedRecipe = recipes[randomIndex];
+        randomRecipe = { ...selectedRecipe }; // Explizit kopieren
+      }
+
+      // Animation stoppen nach Dauer
+      if (elapsed >= animationDuration && !isAnimationComplete) {
+        isAnimationComplete = true;
+        clearInterval(spinInterval);
+        spinInterval = null;
+
+        // FINAL: Wähle finales Rezept
+        const finalIndex = Math.floor(Math.random() * recipes.length);
+        const finalRecipe = recipes[finalIndex];
+        randomRecipe = { ...finalRecipe }; // Explizit kopieren
+        
+        // State Update - WICHTIG für Modal-Anzeige
+        isSpinning = false;
+        showRandomRecipe = true;
+
+        console.log('✅ Final recipe selected:', {
+          title: randomRecipe?.title,
+          id: randomRecipe?._id,
+          time: randomRecipe?.time,
+          portions: randomRecipe?.portions,
+          category: randomRecipe?.category,
+          rating: randomRecipe?.rating,
+          image: randomRecipe?.image ? '✓ has image' : '✗ no image',
+          fullObject: randomRecipe
+        });
+      }
+    }, spinSpeed);
+  }
+
+  function closeRandomRecipe() {
+    // Stoppe sofort jegliche Animationen
+    isSpinning = false;
+    showRandomRecipe = false;
+    
+    // Cleanup Interval SOFORT
+    if (spinInterval !== null) {
+      clearInterval(spinInterval);
+      spinInterval = null;
+    }
+    
+    // Setze Recipe zurück (optional, aber sauberer)
+    randomRecipe = null;
+    
+    console.log('🔄 Modal geschlossen, Cleanup abgeschlossen');
+  }
+
+  function goToRecipeDetail() {
+    // Sicherheit: Modal muss offen sein
+    if (!showRandomRecipe) {
+      console.error('❌ Modal nicht offen');
+      return;
+    }
+
+    // Sicherheit: Rezept muss existieren
+    if (!randomRecipe) {
+      console.error('❌ Kein Rezept ausgewählt');
+      return;
+    }
+
+    // Sicherheit: Rezept muss ID haben
+    if (!randomRecipe._id) {
+      console.error('❌ Rezept hat keine ID:', randomRecipe);
+      return;
+    }
+
+    const recipeId = randomRecipe._id;
+    console.log('✅ Navigiere zu Rezept:', recipeId, '—', randomRecipe.title);
+    
+    // Cleanup SOFORT vor Navigation
+    closeRandomRecipe();
+    
+    // Gehe zur Detailseite (asynchron, aber warte nicht)
+    goto(`/Rezepte/${recipeId}`);
+  }
 </script>
 
 <section class="site-hero">
@@ -94,6 +215,99 @@
     </div>
   </div>
 </section>
+
+<!-- Zufalls-Rezept Spiel -->
+<section class="random-recipe-game">
+  <div class="container">
+    <div class="game-card">
+      <div class="game-header">
+        <span class="game-icon">🎲</span>
+        <h2 class="game-title">Kannst du dich nicht entscheiden?</h2>
+        <p class="game-subtitle">Lass das Glück für dich wählen! Drücke den Button und wir wählen ein zufälliges Rezept für dich aus.</p>
+      </div>
+
+      <button 
+        onclick={pickRandomRecipe} 
+        class="random-btn" 
+        class:spinning={isSpinning}
+        disabled={isSpinning || recipes.length === 0}
+      >
+        <span class="btn-icon">{isSpinning ? '🔄' : '🎰'}</span>
+        <span class="btn-text">{isSpinning ? 'Wähle aus...' : 'Zufälliges Rezept'}</span>
+      </button>
+
+      {#if isSpinning && randomRecipe}
+        <div class="spinning-preview">
+          <div class="spinning-text">🔄 {randomRecipe.title}</div>
+        </div>
+      {/if}
+    </div>
+  </div>
+</section>
+
+<!-- Zufalls-Rezept Modal -->
+{#if showRandomRecipe && randomRecipe}
+  <div class="modal-overlay" onclick={closeRandomRecipe}>
+    <div class="modal-content" onclick={(e) => e.stopPropagation()}>
+      <button class="modal-close" onclick={closeRandomRecipe}>×</button>
+      
+      <div class="modal-header">
+        <h2 class="modal-title">🎉 Dein Rezept wurde ausgewählt!</h2>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-image">
+          <img 
+            src={randomRecipe.image || '/images/placeholder.jpg'} 
+            alt={randomRecipe.title}
+            onerror={(e) => (e.target.src = '/images/placeholder.jpg')}
+          />
+        </div>
+
+        <div class="modal-info">
+          <h3 class="recipe-title">{randomRecipe?.title || 'Rezept'}</h3>
+          
+          <div class="recipe-meta">
+            {#if randomRecipe?.time}
+              <span class="meta-item">⏱️ {randomRecipe.time} Min</span>
+            {/if}
+            {#if randomRecipe?.portions}
+              <span class="meta-item">👥 {randomRecipe.portions} Portionen</span>
+            {/if}
+            {#if randomRecipe?.category && randomRecipe.category.length > 0}
+              <span class="meta-item">🏷️ {randomRecipe.category[0]}</span>
+            {/if}
+          </div>
+
+          {#if randomRecipe?.rating && randomRecipe.rating > 0}
+            <div class="recipe-rating">
+              <span class="stars">{'⭐'.repeat(Math.round(randomRecipe.rating))}</span>
+              <span class="rating-text">{randomRecipe.rating.toFixed(1)}</span>
+            </div>
+          {/if}
+
+          <div class="modal-actions">
+            <button 
+              type="button"
+              onclick={goToRecipeDetail} 
+              class="btn-view"
+              disabled={!randomRecipe?._id}
+            >
+              🍳 Rezept ansehen
+            </button>
+            <button 
+              type="button"
+              onclick={pickRandomRecipe} 
+              class="btn-retry"
+            >
+              🔄 Nochmal würfeln
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <!-- Zutaten-Matching Sektion -->
 <section class="ingredient-matcher">
@@ -542,6 +756,321 @@
 
     .input-wrapper {
       flex-direction: column;
+    }
+  }
+
+  /* Random Recipe Game Styles */
+  .random-recipe-game {
+    padding: 3rem 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .game-card {
+    max-width: 700px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 2.5rem;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+
+  .game-header {
+    margin-bottom: 2rem;
+  }
+
+  .game-icon {
+    font-size: 4rem;
+    display: block;
+    margin-bottom: 1rem;
+    animation: bounce 2s infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .game-title {
+    font-size: 1.8rem;
+    color: #1e293b;
+    margin: 0 0 0.75rem;
+    font-weight: 800;
+  }
+
+  .game-subtitle {
+    color: #64748b;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .random-btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 1.25rem 3rem;
+    border-radius: 50px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+  }
+
+  .random-btn:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+  }
+
+  .random-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .random-btn.spinning {
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  .btn-icon {
+    font-size: 1.5rem;
+    display: inline-block;
+  }
+
+  .spinning .btn-icon {
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .spinning-preview {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f1f5f9;
+    border-radius: 12px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .spinning-text {
+    font-size: 1.1rem;
+    color: #475569;
+    font-weight: 600;
+  }
+
+  /* Modal Styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 1rem;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: 20px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    animation: slideUp 0.4s ease;
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(50px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    z-index: 1;
+  }
+
+  .modal-close:hover {
+    background: rgba(0, 0, 0, 0.2);
+    transform: rotate(90deg);
+  }
+
+  .modal-header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    padding: 2rem;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .modal-title {
+    color: white;
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+  }
+
+  .modal-body {
+    padding: 0;
+  }
+
+  .modal-image {
+    width: 100%;
+    height: 300px;
+    overflow: hidden;
+  }
+
+  .modal-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .modal-info {
+    padding: 2rem;
+  }
+
+  .recipe-title {
+    font-size: 1.6rem;
+    color: #1e293b;
+    margin: 0 0 1rem;
+    font-weight: 700;
+  }
+
+  .recipe-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .meta-item {
+    color: #64748b;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .recipe-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stars {
+    font-size: 1.2rem;
+  }
+
+  .rating-text {
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .btn-view {
+    flex: 1;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 700;
+    text-align: center;
+    transition: all 0.3s;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-view:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+  }
+
+  .btn-retry {
+    flex: 1;
+    background: white;
+    color: #667eea;
+    border: 2px solid #667eea;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .btn-retry:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 768px) {
+    .game-card {
+      padding: 2rem 1.5rem;
+    }
+
+    .game-icon {
+      font-size: 3rem;
+    }
+
+    .game-title {
+      font-size: 1.4rem;
+    }
+
+    .random-btn {
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .modal-actions {
+      flex-direction: column;
+    }
+
+    .modal-info {
+      padding: 1.5rem;
+    }
+
+    .modal-image {
+      height: 200px;
     }
   }
 </style>

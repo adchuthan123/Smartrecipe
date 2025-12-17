@@ -237,6 +237,44 @@ async function updateRecipeAverageRating(recipeId) {
   }
 }
 
+async function getRecentComments(limit = 10) {
+  try {
+    const ratingsCollection = db.collection("ratings");
+    const recipesCollection = db.collection("recipes");
+    
+    // Hole die letzten Ratings mit Kommentaren
+    let ratings = await ratingsCollection
+      .find({ comment: { $exists: true, $ne: "" } })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray();
+
+    // Füge Rezeptinformationen hinzu
+    const commentsWithRecipes = await Promise.all(
+      ratings.map(async (rating) => {
+        const recipe = await recipesCollection.findOne({ 
+          _id: new ObjectId(rating.recipeId) 
+        });
+        
+        return {
+          _id: rating._id.toString(),
+          comment: rating.comment,
+          stars: rating.stars,
+          createdAt: rating.createdAt,
+          recipeId: rating.recipeId,
+          recipeTitle: recipe?.title || "Rezept nicht gefunden",
+          recipeImage: recipe?.image || "/images/placeholder.jpg",
+        };
+      })
+    );
+
+    return commentsWithRecipes;
+  } catch (error) {
+    console.log("Error getting recent comments:", error.message);
+    return [];
+  }
+}
+
 export default {
   getRecipes,
   getRecipesPaginated,
@@ -249,4 +287,5 @@ export default {
   createRating,
   getAverageRatingForRecipe,
   updateRecipeAverageRating,
+  getRecentComments,
 };

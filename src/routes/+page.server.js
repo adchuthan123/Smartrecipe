@@ -2,5 +2,10 @@ import db from '$lib/db.js';
 
 export async function load() {
   const recipes = await db.getRecipes();
-  return { recipes };
+  const recentComments = await db.getRecentComments(10);
+  
+  return { 
+    recipes,
+    recentComments 
+  };
 }

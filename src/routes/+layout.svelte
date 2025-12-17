@@ -60,6 +60,16 @@
       </a>
       
       <a 
+        href="/Zutaten" 
+        class="nav-link" 
+        class:active={isActive('/Zutaten')} 
+        onclick={closeMobileMenu}
+      >
+        <span class="link-icon">🥕</span>
+        <span>Zutaten-Suche</span>
+      </a>
+      
+      <a 
         href="/favorites" 
         class="nav-link" 
         class:active={isActive('/favorites')} 

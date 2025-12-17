@@ -7,6 +7,83 @@
   let recipes = $derived(data.recipes || []);
   let recentComments = $derived(data.recentComments || []);
 
+  // Zutaten-Matching State
+  let ingredientInput = $state("");
+  let userIngredients = $state([]);
+  let matchedRecipes = $state([]);
+  let showResults = $state(false);
+
+  // Füge Zutat hinzu
+  function addIngredient() {
+    const trimmed = ingredientInput.trim().toLowerCase();
+    if (trimmed && !userIngredients.includes(trimmed)) {
+      userIngredients = [...userIngredients, trimmed];
+      ingredientInput = "";
+      findMatches();
+    }
+  }
+
+  // Entferne Zutat
+  function removeIngredient(ingredient) {
+    userIngredients = userIngredients.filter(i => i !== ingredient);
+    if (userIngredients.length > 0) {
+      findMatches();
+    } else {
+      showResults = false;
+      matchedRecipes = [];
+    }
+  }
+
+  // Matching-Algorithmus
+  function findMatches() {
+    if (userIngredients.length === 0) {
+      matchedRecipes = [];
+      showResults = false;
+      return;
+    }
+
+    const results = recipes.map(recipe => {
+      // Normalisiere Rezept-Zutaten
+      const recipeIngredients = recipe.ingredients
+        .map(ing => ing.toLowerCase().trim())
+        .join(" ");
+
+      // Zähle Übereinstimmungen
+      let matchCount = 0;
+      let matchedItems = [];
+      let missingItems = [];
+
+      userIngredients.forEach(userIng => {
+        if (recipeIngredients.includes(userIng)) {
+          matchCount++;
+          matchedItems.push(userIng);
+        } else {
+          missingItems.push(userIng);
+        }
+      });
+
+      return {
+        ...recipe,
+        matchCount,
+        matchedItems,
+        missingItems,
+        matchPercentage: Math.round((matchCount / userIngredients.length) * 100)
+      };
+    })
+    .filter(r => r.matchCount > 0)
+    .sort((a, b) => b.matchCount - a.matchCount);
+
+    matchedRecipes = results;
+    showResults = true;
+  }
+
+  // Enter-Taste Handler
+  function handleKeyPress(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addIngredient();
+    }
+  }
 
   // Zufalls-Rezept State
   let isSpinning = $state(false);
@@ -129,77 +206,31 @@
   }
 </script>
 
-<section class="welcome-banner">
-  <div class="container">
-    <h1 class="welcome-title">Willkommen bei SmartRecipe</h1>
-    <p class="welcome-lead">
-      SmartRecipe hilft dir dabei, schnell passende Rezepte zu finden – basierend auf den Zutaten, die du bereits zuhause hast. Statt lange zu suchen, siehst du sofort, welche Gerichte wirklich zu deinem Vorrat passen.
-    </p>
-    <p class="welcome-text">
-      Egal ob du Reste verwerten möchtest, neue Kochideen suchst oder deine eigenen Rezepte sammeln willst: SmartRecipe vereint intelligente Zutaten-Suche, eine übersichtliche Rezeptdatenbank und Community-Feedback in einer einfachen, modernen Anwendung.
-    </p>
-  </div>
-</section>
-
-<section class="how-it-works">
-  <div class="container">
-    <h2 class="how-title">So funktioniert's</h2>
-    <div class="steps-grid-five">
-      <div class="step">
-        <div class="step-icon">🥗</div>
-        <div class="step-number">1</div>
-        <h3 class="step-title">Zutaten eingeben</h3>
-        <p class="step-description">Gib ein, was du zuhause hast – SmartRecipe nutzt das als Basis fürs Matching.</p>
-      </div>
-      <div class="step">
-        <div class="step-icon">🔍</div>
-        <div class="step-number">2</div>
-        <h3 class="step-title">Passende Rezepte entdecken</h3>
-        <p class="step-description">Du bekommst sofort passende Rezepte inklusive Match-Score und fehlenden Zutaten.</p>
-      </div>
-      <div class="step">
-        <div class="step-icon">🎲</div>
-        <div class="step-number">3</div>
-        <h3 class="step-title">Inspiration auf Knopfdruck</h3>
-        <p class="step-description">Keine Idee? Hol dir ein Zufallsrezept für spontane Kochideen.</p>
-      </div>
-      <div class="step">
-        <div class="step-icon">⭐</div>
-        <div class="step-number">4</div>
-        <h3 class="step-title">Rezepte speichern</h3>
-        <p class="step-description">Markiere Favoriten oder speichere eigene Rezepte mit Bild und Anleitung.</p>
-      </div>
-      <div class="step">
-        <div class="step-icon">💬</div>
-        <div class="step-number">5</div>
-        <h3 class="step-title">Kochen & bewerten</h3>
-        <p class="step-description">Bewerte Rezepte und teile Tipps – so profitieren alle.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
 <section class="site-hero">
   <div class="hero-inner">
-    <div class="hero-grid">
-      <div class="hero-visual">
-        <img src="/images/placeholder.jpg" alt="Kochen mit frischen Zutaten" loading="lazy" />
-      </div>
+    <h1 class="hero-title">SmartRecipe</h1>
+    <p class="hero-sub">Deine persönliche Rezeptsammlung — schnell, einfach und übersichtlich</p>
 
-      <div class="hero-card">
-        <div class="pill">Rezepte</div>
-        <h1 class="hero-title">Was koche ich heute?</h1>
-        <p class="hero-sub">
-          Keine Idee, was heute auf den Teller kommt? Hol dir Inspiration für jeden Geschmack – von schnellen Alltagsgerichten bis zu kreativen Wochenend-Ideen.
-        </p>
-        <ul class="hero-points">
-          <li>Mit der Zutaten-Suche sofort passende Rezepte sehen</li>
-          <li>Zufallsrezept für schnelle Inspiration entdecken</li>
-          <li>Eigene Lieblingsrezepte speichern und teilen</li>
-        </ul>
-        <div class="hero-actions">
-          <a class="btn btn-primary" href="/Zutaten">Zutaten-Suche öffnen</a>
-          <a class="btn btn-ghost" href="/Rezepte">Alle Rezepte ansehen</a>
+    <div class="how-it-works">
+      <h2 class="how-title">So funktioniert's</h2>
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-icon">🔍</div>
+          <div class="step-number">1</div>
+          <h3 class="step-title">Rezept finden</h3>
+          <p class="step-description">Durchsuche alle Rezepte oder nutze Filter</p>
+        </div>
+        <div class="step">
+          <div class="step-icon">🥗</div>
+          <div class="step-number">2</div>
+          <h3 class="step-title">Zutaten nutzen</h3>
+          <p class="step-description">Gib deine Zutaten ein und erhalte passende Vorschläge</p>
+        </div>
+        <div class="step">
+          <div class="step-icon">💾</div>
+          <div class="step-number">3</div>
+          <h3 class="step-title">Speichern & Teilen</h3>
+          <p class="step-description">Favorisiere Rezepte oder erstelle eigene</p>
         </div>
       </div>
     </div>
@@ -224,13 +255,6 @@
       </div>
 
       <div class="action-card">
-        <div class="action-icon">🥕</div>
-        <h3 class="action-title">Zutaten-Suche</h3>
-        <p class="action-description">Gib Zutaten ein und finde passende Rezepte</p>
-        <a href="/Zutaten" class="btn btn-primary">Zur Zutaten‑Suche</a>
-      </div>
-
-      <div class="action-card">
         <div class="action-icon">🔍</div>
         <h3 class="action-title">Rezepte durchsuchen</h3>
         <p class="action-description">Stöbere durch alle verfügbaren Rezepte und Filter</p>
@@ -249,11 +273,7 @@
 
 <!-- Zufalls-Rezept Modal -->
 {#if showRandomRecipe && randomRecipe}
-  <!-- svelte-ignore a11y_click_events_have_key_events -->
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="modal-overlay" onclick={closeRandomRecipe}>
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="modal-content" onclick={(e) => e.stopPropagation()}>
       <button class="modal-close" onclick={closeRandomRecipe}>×</button>
       
@@ -315,6 +335,101 @@
   </div>
 {/if}
 
+<!-- Zutatenfinder Section (Primary Tool) -->
+<section class="ingredient-finder">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">🍳 Finde Rezepte mit deinen Zutaten</h2>
+      <p class="section-subtitle">Gib deine vorhandenen Zutaten ein und entdecke passende Rezepte</p>
+    </div>
+
+    <div class="finder-card">
+      <div class="input-section">
+        <div class="input-wrapper">
+          <input
+            type="text"
+            bind:value={ingredientInput}
+            onkeypress={handleKeyPress}
+            placeholder="z.B. Hähnchen, Tomaten, Zwiebeln..."
+            class="ingredient-input"
+          />
+          <button onclick={addIngredient} class="btn btn-primary" disabled={!ingredientInput.trim()}>
+            Hinzufügen
+          </button>
+        </div>
+
+        {#if userIngredients.length > 0}
+          <div class="ingredients-chips">
+            {#each userIngredients as ingredient}
+              <span class="chip">
+                {ingredient}
+                <button onclick={() => removeIngredient(ingredient)} class="chip-remove" aria-label="Entfernen">×</button>
+              </span>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Ergebnisse der Zutatensuche -->
+{#if showResults || (userIngredients.length > 0 && matchedRecipes.length === 0)}
+<section class="ingredient-results">
+  <div class="container">
+
+    {#if showResults}
+      <h3 class="results-title">
+        {matchedRecipes.length} {matchedRecipes.length === 1 ? 'Rezept gefunden' : 'Rezepte gefunden'}
+      </h3>
+
+      <div class="results-grid">
+        {#each matchedRecipes as recipe}
+          <a href="/Rezepte/{recipe._id}" class="result-card">
+            <div class="result-image">
+              <img 
+                src={recipe.image || '/images/placeholder.jpg'} 
+                alt={recipe.title}
+                onerror={(e) => (e.target.src = '/images/placeholder.jpg')}
+              />
+              <div class="match-badge">{recipe.matchPercentage}% Match</div>
+            </div>
+            
+            <div class="result-content">
+              <h4 class="result-title">{recipe.title}</h4>
+              
+              <div class="result-meta">
+                <span>⏱️ {recipe.duration} Min</span>
+                <span>👥 {recipe.servings} Portionen</span>
+              </div>
+
+              <div class="match-info">
+                <div class="matched">
+                  <strong>{recipe.matchCount}</strong> von <strong>{userIngredients.length}</strong> Zutaten vorhanden
+                </div>
+                
+                {#if recipe.matchedItems.length > 0}
+                  <div class="matched-items">
+                    ✓ {recipe.matchedItems.slice(0, 3).join(', ')}
+                    {#if recipe.matchedItems.length > 3}
+                      <span class="more">+{recipe.matchedItems.length - 3} weitere</span>
+                    {/if}
+                  </div>
+                {/if}
+              </div>
+            </div>
+          </a>
+        {/each}
+      </div>
+    {:else}
+      <div class="no-results">
+        <p>Keine Rezepte mit diesen Zutaten gefunden. Versuche andere Zutaten!</p>
+      </div>
+    {/if}
+  </div>
+</section>
+{/if}
+
 <!-- Letzte Kommentare Carousel -->
 <section class="recent-comments-section">
   <div class="container">
@@ -322,29 +437,9 @@
       <h2 class="section-title">💬 Letzte Kommentare</h2>
       <p class="section-subtitle">Was unsere Community über die Rezepte sagt</p>
     </div>
-    <div class="comments-shell">
-      <CommentsCarousel comments={recentComments} />
-    </div>
+    <CommentsCarousel comments={recentComments} />
   </div>
 </section>
-
-<!-- Footer Section -->
-<footer class="site-footer">
-  <div class="container">
-    <div class="footer-content">
-      <div class="footer-block">
-        <p class="footer-label">Erstellt von</p>
-        <p class="footer-name">Adchuthan Premananthan</p>
-        <p class="footer-info">Modul Prototyping</p>
-        <p class="footer-info">Bsc Wirtschaftsinformatik</p>
-      </div>
-      <div class="footer-block">
-        <p class="footer-label">Kontakt</p>
-        <p class="footer-info">Email: premaadc@students.zhaw.ch</p>
-      </div>
-    </div>
-  </div>
-</footer>
 
 <style>
   /* Design System Variables */
@@ -352,20 +447,12 @@
     --max-width: 1200px;
     --border-radius: 16px;
     --border-radius-sm: 12px;
-    --shadow: 0 10px 40px rgba(15, 23, 42, 0.08);
-    --shadow-hover: 0 16px 48px rgba(15, 23, 42, 0.12);
-    --spacing-section: 4.5rem;
+    --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.12);
+    --spacing-section: 4rem;
     --spacing-lg: 3rem;
     --spacing-md: 2rem;
     --spacing-sm: 1rem;
-    --surface: #ffffff;
-    --surface-soft: #f5f7fb;
-    --text-strong: #0f172a;
-    --text-soft: #475569;
-    --accent: linear-gradient(135deg, #635bff, #7c3aed);
-    --primary: #635bff;
-    --primary-strong: #4f46e5;
-    --border-soft: #e2e8f0;
   }
 
   /* Container */
@@ -375,42 +462,12 @@
     padding: 0 var(--spacing-sm);
   }
 
-  /* Welcome Banner */
-  .welcome-banner {
-    background: var(--surface-soft);
-    padding: 2.75rem 0 1.5rem;
-  }
-
-  .welcome-title {
-    margin: 0 0 0.75rem;
-    font-size: clamp(1.8rem, 3.2vw, 2.4rem);
-    font-weight: 800;
-    color: var(--text-strong);
-    letter-spacing: -0.4px;
-  }
-
-  .welcome-lead {
-    margin: 0 0 0.75rem;
-    color: var(--text-soft);
-    font-size: 1.05rem;
-    line-height: 1.7;
-  }
-
-  .welcome-text {
-    margin: 0;
-    color: var(--text-soft);
-    font-size: 1.02rem;
-    line-height: 1.7;
-  }
-
-  .welcome-banner .container {
-    max-width: 1080px;
-  }
-
   /* Hero Section */
   .site-hero {
-    background: var(--surface-soft);
-    padding: calc(var(--spacing-section) + 0.5rem) 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: var(--spacing-section) 0;
+    text-align: center;
   }
 
   .hero-inner {
@@ -419,199 +476,26 @@
     padding: 0 var(--spacing-sm);
   }
 
-  .hero-grid {
-    display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    gap: calc(var(--spacing-lg) + 0.5rem);
-    align-items: center;
-  }
-
-  .hero-visual {
-    background: #0f172a;
-    border-radius: 26px;
-    overflow: hidden;
-    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
-  }
-
-  .hero-visual img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  .hero-card {
-    background: var(--surface);
-    border-radius: 24px;
-    padding: calc(var(--spacing-lg) + 0.25rem);
-    box-shadow: 0 14px 48px rgba(99, 91, 255, 0.08);
-    border: 1px solid var(--border-soft);
-    display: flex;
-    flex-direction: column;
-    gap: 1.1rem;
-  }
-
-  .pill {
-    align-self: flex-start;
-    background: #fce7f3;
-    color: #be185d;
-    padding: 0.4rem 0.9rem;
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 0.9rem;
-    letter-spacing: 0.2px;
-  }
-
   .hero-title {
-    font-size: clamp(2.35rem, 4.2vw, 3.15rem);
-    margin: 0;
-    color: var(--text-strong);
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    margin: 0 0 1rem;
     font-weight: 800;
-    letter-spacing: -0.8px;
+    letter-spacing: -1px;
   }
 
   .hero-sub {
-    color: var(--text-soft);
-    font-size: clamp(1.02rem, 2.1vw, 1.12rem);
-    line-height: 1.65;
-    margin: 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    max-width: 600px;
+    margin: 0 auto var(--spacing-md);
+    line-height: 1.6;
   }
 
-  .hero-points {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    gap: 0.5rem;
-  }
-
-  .hero-points li {
-    color: var(--text-soft);
-    font-size: 0.98rem;
-    line-height: 1.5;
-    padding-left: 1.6rem;
-    position: relative;
-  }
-
-  .hero-points li::before {
-    content: '•';
-    position: absolute;
-    left: 0.3rem;
-    top: 0;
-    color: var(--primary-strong);
-    font-weight: 800;
-  }
-
-  .hero-actions {
+  .hero-cta {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-  }
-
-  /* How It Works */
-  .how-it-works {
-    padding: calc(var(--spacing-section) - 0.5rem) 0;
-    background: var(--surface-soft);
-  }
-
-  .how-title {
-    color: var(--text-strong);
-    font-size: clamp(1.6rem, 3vw, 2rem);
-    font-weight: 800;
-    text-align: center;
-    margin: 0 0 2rem;
-    letter-spacing: -0.2px;
-  }
-
-  .steps-grid-five {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(180px, 1fr));
     gap: 1rem;
-    max-width: 1400px;
-    margin: 0 auto;
-    justify-items: center;
-  }
-
-  @media (max-width: 1200px) {
-    .steps-grid-five {
-      grid-template-columns: repeat(4, minmax(180px, 1fr));
-    }
-  }
-
-  @media (max-width: 1000px) {
-    .steps-grid-five {
-      grid-template-columns: repeat(3, minmax(180px, 1fr));
-    }
-  }
-
-  @media (max-width: 800px) {
-    .steps-grid-five {
-      grid-template-columns: repeat(2, minmax(160px, 1fr));
-    }
-  }
-
-  @media (max-width: 560px) {
-    .steps-grid-five {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .step {
-    background: var(--surface);
-    border: 1px solid var(--border-soft);
-    border-radius: 16px;
-    padding: 1.1rem;
-    text-align: center;
-    position: relative;
-    transition: all 0.3s ease;
-    width: 100%;
-    max-width: 240px;
-    display: flex;
-    flex-direction: column;
-    min-height: 180px;
-    box-shadow: var(--shadow);
-  }
-
-  .step:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-hover);
-  }
-
-  .step-icon {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-    line-height: 1;
-  }
-
-  .step-number {
-    position: absolute;
-    top: 0.6rem;
-    right: 0.6rem;
-    background: #e2e8f0;
-    color: var(--text-strong);
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 0.8rem;
-  }
-
-  .step-title {
-    color: var(--text-strong);
-    font-size: 1rem;
-    font-weight: 800;
-    margin: 0 0 0.5rem;
-  }
-
-  .step-description {
-    color: var(--text-soft);
-    font-size: 0.95rem;
-    line-height: 1.55;
-    margin: 0;
-    flex-grow: 1;
+    flex-wrap: wrap;
   }
 
   /* Unified Button System */
@@ -632,7 +516,7 @@
   }
 
   .btn-primary {
-    background: var(--accent);
+    background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
     box-shadow: var(--shadow);
   }
@@ -648,18 +532,89 @@
     transform: none;
   }
 
-  .btn-ghost {
-    background: white;
-    color: var(--primary-strong);
-    border: 1.5px solid var(--border-soft);
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
   }
 
-  .btn-ghost:hover:not(:disabled) {
-    border-color: var(--primary);
-    color: var(--primary);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-hover);
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* How It Works Section */
+  .how-it-works {
+    margin-top: var(--spacing-lg);
+  }
+
+  .how-title {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
+    font-weight: 700;
+    text-align: center;
+    margin: 0 0 var(--spacing-md);
+    letter-spacing: 0.5px;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--spacing-md);
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .step {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--border-radius-sm);
+    padding: 1.5rem;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+
+  .step:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-4px);
+  }
+
+  .step-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    line-height: 1;
+  }
+
+  .step-number {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .step-title {
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+  }
+
+  .step-description {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0;
   }
 
   /* Section Headers (Unified) */
@@ -686,77 +641,51 @@
 
   /* Quick Actions Grid */
   .quick-actions {
-    padding: calc(var(--spacing-section) - 0.25rem) 0;
-    background: var(--surface-soft);
+    padding: var(--spacing-section) 0;
+    background: #f8fafc;
   }
 
   .actions-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: var(--spacing-md);
   }
 
-  @media (max-width: 1200px) {
-    .actions-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 960px) {
-    .actions-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-
-  @media (max-width: 640px) {
-    .actions-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
   .action-card {
-    background: var(--surface);
-    border-radius: 20px;
-    padding: calc(var(--spacing-md) + 0.25rem);
-    box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+    background: white;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow);
     text-align: center;
-    transition: all 0.25s ease;
+    transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
     align-items: center;
-    border: 1px solid #e2e8f0;
   }
 
   .action-card:hover {
-    transform: translateY(-6px);
+    transform: translateY(-4px);
     box-shadow: var(--shadow-hover);
   }
 
   .action-icon {
-    width: 64px;
-    height: 64px;
-    display: grid;
-    place-items: center;
-    border-radius: 18px;
-    background: #f3f4ff;
-    color: var(--primary-strong);
-    font-size: 2.25rem;
+    font-size: 3.5rem;
     margin-bottom: var(--spacing-sm);
     line-height: 1;
   }
 
   .action-title {
-    font-size: 1.28rem;
-    color: var(--text-strong);
-    margin: 0 0 0.5rem;
-    font-weight: 800;
+    font-size: 1.4rem;
+    color: #1e293b;
+    margin: 0 0 0.75rem;
+    font-weight: 700;
   }
 
   .action-description {
-    color: var(--text-soft);
-    font-size: 0.98rem;
-    line-height: 1.55;
-    margin: 0 0 1.15rem;
+    color: #64748b;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin: 0 0 1.5rem;
     flex-grow: 1;
   }
 
@@ -765,28 +694,215 @@
     max-width: 240px;
   }
 
-  /* Recent Comments Section */
-  .recent-comments-section {
-    padding: var(--spacing-section) calc(var(--spacing-section) * 1.5);
-    background: var(--surface-soft);
+  /* Ingredient Finder (Primary Tool) */
+  .ingredient-finder {
+    padding: var(--spacing-section) 0;
+    background: white;
   }
 
-  .comments-shell {
-    background: var(--surface);
-    border-radius: 20px;
-    padding: calc(var(--spacing-lg) + 1rem);
-    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.08);
-    border: 1px solid var(--border-soft);
-    min-height: 420px;
+  .finder-card {
+    background: #f8fafc;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow);
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .input-section {
+    width: 100%;
+  }
+
+  .input-wrapper {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .ingredient-input {
+    flex: 1;
+    padding: 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: var(--border-radius-sm);
+    font-size: 1rem;
+    transition: all 0.2s;
+    background: white;
+  }
+
+  .ingredient-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  .ingredients-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: var(--spacing-sm);
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: white;
+    color: #1e293b;
+    padding: 0.625rem 1rem;
+    border-radius: 24px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    box-shadow: var(--shadow);
+    transition: all 0.2s;
+  }
+
+  .chip:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .chip-remove {
+    background: #f1f5f9;
+    color: #64748b;
+    border: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
+    cursor: pointer;
+    font-size: 1.25rem;
+    line-height: 1;
+    transition: all 0.2s;
   }
 
-  .comments-shell > :global(*) {
+  .chip-remove:hover {
+    background: #ef4444;
+    color: white;
+  }
+
+  /* Ingredient Results */
+  .ingredient-results {
+    padding: var(--spacing-section) 0;
+    background: #f8fafc;
+  }
+
+  .results-title {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-md);
+    color: #1e293b;
+    text-align: center;
+    font-weight: 700;
+  }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--spacing-md);
+  }
+
+  .result-card {
+    background: white;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  .result-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .result-image {
+    position: relative;
     width: 100%;
-    margin: 0 auto;
+    height: 220px;
+    overflow: hidden;
+  }
+
+  .result-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+
+  .result-card:hover .result-image img {
+    transform: scale(1.05);
+  }
+
+  .match-badge {
+    position: absolute;
+    t-results {
+    text-align: center;
+    padding: var(--spacing-lg);
+    color: #64748b;
+    font-size: 1.1rem;
+  }
+
+  /* Recent Comments Section */
+  .recent-comments-section {
+    padding: var(--spacing-section) 0;
+    background: linear-gradient(135deg, #f8fafc 0%, #e8f0fe 100%);
+  }
+
+  /* Features Section */
+  .features {
+    padding: var(--spacing-section) 0;
+    background: white;
+  }
+
+  .features-title {
+    text-align: center;
+    font-size: clamp(1.75rem, 3vw, 2rem);
+    margin-bottom: var(--spacing-lg);
+    color: #1e293b;
+    font-weight: 800;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-md);
+  }
+
+  .feature-card {
+    background: #f8fafc;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow);
+    text-align: center;
+    transition: all 0.3s ease;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .feature-icon {
+    font-size: 3rem;
+    margin-bottom: var(--spacing-sm);
+    line-height: 1;
+  }
+
+  .feature-card h3 {
+    margin: 0 0 0.75rem;
+    font-size: 1.2rem;
+    color: #1e293b;
+    font-weight: 700;
+  }
+
+  .feature-card p {
+    color: #64748b;
+    font-size: 1rem;
+    margin: 0;
+    line-height: 1.6;
   }
 
   /* Random Recipe Modal */
@@ -973,26 +1089,29 @@
       --spacing-lg: 2rem;
     }
 
-    .hero-grid {
+    .steps-grid {
       grid-template-columns: 1fr;
-    }
-
-    .hero-card {
-      order: -1;
-    }
-
-    .steps-grid-five {
-      grid-template-columns: 1fr !important;
       gap: var(--spacing-sm);
     }
 
     .step {
       padding: 1.25rem;
-      max-width: 100%;
-      min-height: auto;
     }
 
     .actions-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .input-wrapper {
+      flex-direction: column;
+    }
+
+    .input-wrapper .btn {
+      width: 100%;
+    }
+
+    .results-grid {
+      grid-template-columns: 1fr;
     }
 
     .modal-actions {
@@ -1013,57 +1132,6 @@
     :global(:root) {
       --spacing-section: 2.5rem;
       --spacing-md: 1.5rem;
-    }
-  }
-
-  /* Footer Section */
-  .site-footer {
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    color: white;
-    padding: var(--spacing-lg) 0;
-    margin-top: var(--spacing-section);
-  }
-
-  .footer-content {
-    display: flex;
-    justify-content: center;
-    gap: 4rem;
-    flex-wrap: wrap;
-  }
-
-  .footer-block {
-    text-align: center;
-  }
-
-  .footer-label {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin: 0 0 0.5rem;
-    font-weight: 600;
-  }
-
-  .footer-name {
-    color: white;
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin: 0 0 0.5rem;
-  }
-
-  .footer-info {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.95rem;
-    margin: 0.25rem 0;
-  }
-
-  @media (max-width: 768px) {
-    .footer-content {
-      gap: 2rem;
-    }
-
-    .site-footer {
-      padding: var(--spacing-md) 0;
     }
   }
 </style>

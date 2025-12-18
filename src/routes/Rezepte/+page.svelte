@@ -170,8 +170,9 @@
 
 {:else}
   <!-- FILTER VIEW -->
-  <h2 class="section-title">Rezepte für dich</h2>
-  <p class="section-subtitle">Speziell ausgewählt für dein Ziel</p>
+  <div class="page-wrap">
+    <h2 class="section-title">Rezepte für dich</h2>
+    <p class="section-subtitle">Speziell ausgewählt für dein Ziel</p>
 
   <!-- Create Button + Search + Filter Bar Container -->
   <div class="controls-container">
@@ -216,7 +217,7 @@
       </button>
     {/if}
   </div>
-</div><!-- Erweiterte Filter Panel -->
+  </div><!-- Erweiterte Filter Panel -->
 {#if showAdvancedFilters}
   <div class="advanced-filters-panel">
     <div class="advanced-filters-content">
@@ -336,6 +337,7 @@
     </p>
   </div>
 {/if}
+  </div>
 
   <!-- View Mode Toggle (bottom right) -->
   <div class="view-toggle">
@@ -358,15 +360,20 @@
 
 <style>
   .section-title {
-    font-size: 2.2rem;
-    font-weight: bold;
-    margin-bottom: 0.3rem;
-    margin-top: 1.5rem;
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 0 0 0.4rem 0;
   }
 
   .section-subtitle {
     color: #777;
-    margin-bottom: 2rem;
+    margin: 0 0 1.25rem 0;
+  }
+
+  .page-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem 1.25rem 2rem; /* Abstand links/rechts/oben */
   }
 
   .controls-container {
@@ -646,7 +653,7 @@
   .recipe-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 2rem;
+    gap: 1.6rem;
   }
 
   .no-results {

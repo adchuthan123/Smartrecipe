@@ -95,6 +95,22 @@
   {@render children()}
 </main>
 
+<footer class="site-footer" role="contentinfo">
+  <div class="footer-wrap">
+    <div class="footer-section">
+      <div class="footer-title">ERSTELLT VON</div>
+      <div class="footer-text">Projektteam SmartRecipe</div>
+      <div class="footer-subtext">Modul Prototyping</div>
+      <div class="footer-subtext">BSc Wirtschaftsinformatik</div>
+    </div>
+    <div class="footer-section">
+      <div class="footer-title">KONTAKT</div>
+      <div class="footer-text">Email: premaadc@students.zhaw.ch </div>
+    </div>
+  </div>
+  
+</footer>
+
 <style>
   .modern-nav {
     background: linear-gradient(135deg, #0f1724 0%, #1a2332 100%);
@@ -252,6 +268,7 @@
 
   .main-content {
     min-height: calc(100vh - 70px);
+    padding-bottom: 1rem;
   }
 
   @media (max-width: 768px) {
@@ -303,5 +320,45 @@
       background: rgba(0, 102, 255, 0.2);
       border-left: 4px solid #0066ff;
     }
+  }
+
+  /* Global Footer */
+  .site-footer {
+    background: linear-gradient(135deg, #172032 0%, #223047 100%);
+    color: #e5e7eb;
+    margin-top: 2rem; /* Abstand zum Inhalt */
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .footer-wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 2rem;
+    align-items: start;
+    text-align: center;
+  }
+
+  .footer-title {
+    color: #93c5fd;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.5rem;
+  }
+
+  .footer-text {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #f3f4f6;
+  }
+
+  .footer-subtext {
+    color: #cbd5e1;
+  }
+
+  @media (max-width: 768px) {
+    .footer-wrap { padding: 1.5rem 1rem; }
   }
 </style>

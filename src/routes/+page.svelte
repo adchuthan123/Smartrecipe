@@ -7,6 +7,39 @@
   let recipes = $derived(data.recipes || []);
   let recentComments = $derived(data.recentComments || []);
 
+  // Hero Slideshow State
+  let currentSlideIndex = $state(0);
+  let slideshowRecipes = $state([]);
+  let slideshowInterval = null;
+
+  // Initialize slideshow with 6 random recipes
+  $effect(() => {
+    if (recipes && recipes.length > 0 && slideshowRecipes.length === 0) {
+      const shuffled = [...recipes].sort(() => Math.random() - 0.5);
+      slideshowRecipes = shuffled.slice(0, Math.min(6, recipes.length));
+      
+      // Start auto-rotation every 4 seconds
+      if (slideshowInterval) clearInterval(slideshowInterval);
+      slideshowInterval = setInterval(() => {
+        currentSlideIndex = (currentSlideIndex + 1) % slideshowRecipes.length;
+      }, 4000);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (slideshowInterval) clearInterval(slideshowInterval);
+    };
+  });
+
+  let currentRecipe = $derived(slideshowRecipes[currentSlideIndex] || null);
+
+  function nextSlide() {
+    currentSlideIndex = (currentSlideIndex + 1) % slideshowRecipes.length;
+  }
+
+  function prevSlide() {
+    currentSlideIndex = (currentSlideIndex - 1 + slideshowRecipes.length) % slideshowRecipes.length;
+  }
 
   // Zufalls-Rezept State
   let isSpinning = $state(false);
@@ -183,7 +216,34 @@
   <div class="hero-inner">
     <div class="hero-grid">
       <div class="hero-visual">
-        <img src="/images/placeholder.jpg" alt="Kochen mit frischen Zutaten" loading="lazy" />
+        {#if currentRecipe}
+          <img 
+            src={currentRecipe.image || '/images/placeholder.jpg'} 
+            alt={currentRecipe.title}
+            onerror={(e) => (e.target.src = '/images/placeholder.jpg')}
+          />
+          
+          <!-- Navigation Arrows -->
+          <button class="slide-arrow slide-arrow-left" onclick={prevSlide} aria-label="Vorheriges Rezept">
+            ‹
+          </button>
+          <button class="slide-arrow slide-arrow-right" onclick={nextSlide} aria-label="Nächstes Rezept">
+            ›
+          </button>
+          
+          <div class="slideshow-indicators">
+            {#each slideshowRecipes as _, index}
+              <button 
+                class="indicator" 
+                class:active={index === currentSlideIndex}
+                onclick={() => currentSlideIndex = index}
+                aria-label="Gehe zu Rezept {index + 1}"
+              ></button>
+            {/each}
+          </div>
+        {:else}
+          <img src="/images/placeholder.jpg" alt="Kochen mit frischen Zutaten" loading="lazy" />
+        {/if}
       </div>
 
       <div class="hero-card">
@@ -198,7 +258,13 @@
           <li>Eigene Lieblingsrezepte speichern und teilen</li>
         </ul>
         <div class="hero-actions">
-          <a class="btn btn-primary" href="/Zutaten">Zutaten-Suche öffnen</a>
+          {#if currentRecipe}
+            <a class="btn btn-primary" href="/Rezepte/{currentRecipe._id}">
+              🍳 {currentRecipe.title}
+            </a>
+          {:else}
+            <a class="btn btn-primary" href="/Rezepte">Rezepte entdecken</a>
+          {/if}
           <a class="btn btn-ghost" href="/Rezepte">Alle Rezepte ansehen</a>
         </div>
       </div>
@@ -328,23 +394,7 @@
   </div>
 </section>
 
-<!-- Footer Section -->
-<footer class="site-footer">
-  <div class="container">
-    <div class="footer-content">
-      <div class="footer-block">
-        <p class="footer-label">Erstellt von</p>
-        <p class="footer-name">Adchuthan Premananthan</p>
-        <p class="footer-info">Modul Prototyping</p>
-        <p class="footer-info">Bsc Wirtschaftsinformatik</p>
-      </div>
-      <div class="footer-block">
-        <p class="footer-label">Kontakt</p>
-        <p class="footer-info">Email: premaadc@students.zhaw.ch</p>
-      </div>
-    </div>
-  </div>
-</footer>
+<!-- Global Footer kommt aus +layout.svelte; lokales Duplikat entfernt -->
 
 <style>
   /* Design System Variables */
@@ -431,6 +481,7 @@
     border-radius: 26px;
     overflow: hidden;
     box-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+    position: relative;
   }
 
   .hero-visual img {
@@ -438,6 +489,72 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    transition: opacity 0.5s ease;
+  }
+
+  .slideshow-indicators {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.5rem;
+    z-index: 10;
+  }
+
+  .indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+  }
+
+  .indicator:hover {
+    background: rgba(255, 255, 255, 0.8);
+    transform: scale(1.2);
+  }
+
+  .indicator.active {
+    background: white;
+    width: 24px;
+    border-radius: 5px;
+  }
+
+  .slide-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+  }
+
+  .slide-arrow:hover {
+    background: rgba(0, 0, 0, 0.7);
+    transform: translateY(-50%) scale(1.1);
+  }
+
+  .slide-arrow-left {
+    left: 1rem;
+  }
+
+  .slide-arrow-right {
+    right: 1rem;
   }
 
   .hero-card {
@@ -992,9 +1109,6 @@
       min-height: auto;
     }
 
-    .actions-grid {
-    }
-
     .modal-actions {
       flex-direction: column;
     }
@@ -1016,54 +1130,5 @@
     }
   }
 
-  /* Footer Section */
-  .site-footer {
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    color: white;
-    padding: var(--spacing-lg) 0;
-    margin-top: var(--spacing-section);
-  }
-
-  .footer-content {
-    display: flex;
-    justify-content: center;
-    gap: 4rem;
-    flex-wrap: wrap;
-  }
-
-  .footer-block {
-    text-align: center;
-  }
-
-  .footer-label {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin: 0 0 0.5rem;
-    font-weight: 600;
-  }
-
-  .footer-name {
-    color: white;
-    font-size: 1.1rem;
-    font-weight: 700;
-    margin: 0 0 0.5rem;
-  }
-
-  .footer-info {
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 0.95rem;
-    margin: 0.25rem 0;
-  }
-
-  @media (max-width: 768px) {
-    .footer-content {
-      gap: 2rem;
-    }
-
-    .site-footer {
-      padding: var(--spacing-md) 0;
-    }
-  }
+  /* Footer-Styles aus dieser Seite entfernt; global in +layout.svelte definiert */
 </style>

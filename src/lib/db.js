@@ -1,5 +1,6 @@
 import { MongoClient, ObjectId } from "mongodb";
 import { DB_URI } from "$env/static/private";
+import { applyImageFallback, getSafeImageUrl } from "./utils/imageUtils.js";
 
 const client = new MongoClient(DB_URI);
 
@@ -9,14 +10,6 @@ const db = client.db("SmartRecipe");
 //////////////////////////////////////////
 // Recipes
 //////////////////////////////////////////
-
-// helper → fügt überall fallback hinzu
-function applyImageFallback(recipe) {
-  if (!recipe.image || recipe.image.trim() === "") {
-    recipe.image = "/images/placeholder.jpg";
-  }
-  return recipe;
-}
 
 async function getRecipes() {
   try {

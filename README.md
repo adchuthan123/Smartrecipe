@@ -132,7 +132,9 @@ Es wurden mehrere Konzeptvarianten skizziert, darunter:
 - eine Kombination aus Inspiration und Filteransicht.
 
 - **Skizzen:** _Mehrere Varianten; Unterschiede kurz dokumentieren._
-![alt text](image.png)
+
+![alt text](static/images/sketch.png)
+
 
 Untersucht wurden u. a. eine einfache Grid-Übersicht, eine kategorisierte Rezeptdarstellung, ein Split-Layout mit gleichzeitiger Detailansicht, eine Swipe-basierte Inspirationslösung sowie eine klassische Filteransicht mit Seitenleiste. Varianten mit starkem Medien- oder Profilfokus wurden als zu komplex verworfen.
 
@@ -171,11 +173,15 @@ Die Informationsarchitektur von SmartRecipe ist bewusst seitenbasiert und klar s
 
 Die Oberflächen sind auf visuelle Klarheit und leichte Erfassbarkeit ausgelegt. Grosse, hochwertige Bilder stehen im Vordergrund und dienen als zentrales Orientierungselement. Eine klare Typografie mit deutlicher Hierarchie sorgt dafür, dass Titel, Metainformationen und Inhalte schnell unterscheidbar sind. Kategorien-Badges wie vegan, proteinreich oder glutenfrei sind gut sichtbar platziert und ermöglichen eine schnelle Einordnung der Rezepte. Interaktive Elemente wie Favoriten-Symbole oder Filter-Chips geben unmittelbares visuelles Feedback und fördern eine intuitive, spielerische Bedienung.
 
-![alt text](image-1.png)
-![alt text](image-2.png)
-![alt text](image-3.png)
-![alt text](image-4.png)
-![alt text](image-5.png)
+![alt text](static/images/design1.png)
+![alt text](static/images/design2.png)
+![alt text](static/images/design3.png)
+![alt text](static/images/design4.png)
+![alt text](static/images/design5.png)
+![alt text](static/images/design6.png)
+![alt text](static/images/design7.png)
+![alt text](static/images/design8.png)
+![alt text](static/images/design9.png)
 
 _  
 - **Designentscheidungen:** _[zentrale Entscheidungen und Begründungen]_
@@ -241,7 +247,9 @@ Aufgrund der Evaluation wurden kleinere Anpassungen an Beschriftungen und visuel
 Dokumentiert Erweiterungen über den Mindestumfang hinaus.
 Über den in den Übungen definierten Mindestumfang hinaus wurden mehrere funktionale und gestalterische Erweiterungen umgesetzt. Diese Erweiterungen verfolgen das Ziel, die Nutzererfahrung zu verbessern, die Anwendung inspirierender zu gestalten und reale Nutzungsszenarien möglichst authentisch abzubilden. Sie sind bewusst als Ergänzungen konzipiert und nicht notwendig, um die Kernanforderungen zu erfüllen.
 
-- **Beschreibung & Nutzen:** _[Was wurde erweitert? Warum?]_  
+- **Beschreibung & Nutzen:** 
+
+_[Was wurde erweitert? Warum?]_  
 Eine zentrale Erweiterung ist die inspirierende Startseite mit thematisch kuratierten Rezeptreihen (z. B. „Beliebte Rezepte“, „Top bewertet“, „Vegan geniessen“). Diese Darstellung unterstützt Nutzende insbesondere in Situationen, in denen sie keine konkrete Idee haben, was sie kochen möchten, und senkt die Einstiegshürde in die Anwendung.
 
 Zusätzlich wurde eine Zufallsrezept-Funktion integriert, die spontane Inspiration ermöglicht und spielerische Elemente in den Nutzungskontext einbringt. Diese Funktion richtet sich gezielt an Nutzende, die schnell eine Entscheidung treffen möchten, ohne aktiv zu suchen oder zu filtern.
@@ -259,15 +267,16 @@ Der verpflichtende Mindestumfang umfasst die grundlegenden Workflows wie Rezept�
 
 ## 6. Projektorganisation [Optional]
 Beispiele:
-- **Repository & Struktur:** _[Link; kurze Strukturübersicht]_  
+- **Repository & Struktur:** 
+
 Link: https://github.com/adchuthan123/Smartrecipe
 
 Das Projekt wurde in einem zentralen Git-Repository geführt. Die Struktur ist so aufgebaut, dass sich Hauptbereiche wie Seiten/Views und wiederverwendbare UI-Bausteine klar trennen lassen. Dadurch konnten Änderungen am Design oder an einzelnen Features gezielt umgesetzt werden, ohne andere Teile unnötig zu beeinflussen.
 
-- **Issue‑Management:** _[Vorgehen kurz beschreiben]_  
+- **Issue‑Management:** 
 Statt eines formalen Issue-Boards wurde leichtgewichtig gearbeitet: Aufgaben ergaben sich direkt aus den Übungsphasen (Understand/Sketch/Decide/Prototype/Validate) und wurden iterativ umgesetzt. Priorisiert wurde jeweils, was für die End-to-End-Workflows und die Prototyp-Qualität (Navigation, Verständlichkeit, Konsistenz) am wichtigsten ist.
 
-- **Commit‑Praxis:** _[z. B. sprechende Commits]_
+- **Commit‑Praxis:** 
 Die Versionshistorie dokumentiert die schrittweise Entwicklung der wichtigsten Funktionen und UI-Bausteine. Commits wurden feature-orientiert gesetzt, z. B. für Startseite, Navigation, Filteransicht, Rezeptkarten/Carousels und den Random-Generator. Zusätzlich zeigen einzelne Commits gezielte Qualitätsverbesserungen (z. B. Umbenennung/Refactoring von Komponenten) sowie die Zusammenführung von Änderungen über Merges. Dadurch ist nachvollziehbar, wie der Prototyp iterativ ausgebaut und verfeinert wurde.
 
 ## 7. KI‑Deklaration
@@ -282,7 +291,6 @@ Eingesetzte KI-Werkzeuge:
 - GitHub Copilot
 
 ### Zweck & Umfang
-_[**wie, wofür und in welchem Ausmass** wurde KI eingesetzt (z. B. Textentwürfe, Codevorschläge, Tests, Refactoring) sowie **Überlegungen** zu Qualität, Urheberrecht/Quellen und Prompt‑Vorgehen]_
 
 KI wurde im Projekt unterstützend in mehreren Phasen eingesetzt, insbesondere:
 
@@ -313,7 +321,6 @@ Es wurden keine fremden, urheberrechtlich geschützten Inhalte übernommen.
 
 
 ### Eigene Leistung (Abgrenzung)
-_[was ist eigenständig erarbeitet/überarbeitet worden?]_
 
 Die folgenden Leistungen wurden eigenständig erbracht:
 
@@ -342,7 +349,7 @@ Prompts wurden gezielt und kontextbezogen formuliert, z. B. zur:
 Die Ergebnisse wurden anschliessend manuell angepasst.
 
 ### Quellen & Rechte [Optional]
-_[verwendete Vorlagen/Assets/Modelle; Lizenz/Urheberrecht; Zitierweise]_
+
 Alle Inhalte, Designs und Strukturen wurden eigenständig erstellt. Es wurden keine externen, lizenzpflichtigen Templates oder Assets übernommen. Platzhalterbilder und Icons dienen ausschliesslich der Prototyp-Darstellung.
 
 
